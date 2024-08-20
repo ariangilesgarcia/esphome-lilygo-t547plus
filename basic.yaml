@@ -44,12 +44,13 @@ logger:
 api:
   password: !secret api_ota_password
 ota:
+  platform: esphome
   password: !secret api_ota_password
 wifi: !include wifi-secrets.yaml
 
 binary_sensor:
   - platform: gpio
-    pin: 
+    pin:
       number: GPIO21 #was GPIO39 on the previous board
       inverted: true
     name: "Button 1"
@@ -62,9 +63,46 @@ external_components:
     path: components/
   components: ["t547"]
 
+font:
+  - id: roboto
+    file: "gfonts://Roboto"
+    size: 50
+
+  - id: roboto_large
+    file: "gfonts://Roboto"
+    size: 90
+
+  - id: roboto_small
+    file: "gfonts://Roboto"
+    size: 34
+
+  - id: roboto_vsmall
+    file: "gfonts://Roboto"
+    size: 20
+
+  - id: material_trams
+    file: "gfonts://Material+Icons"
+    size: 50
+    glyphs:
+      - "\U0000E571" #tram
+      - "\U0000E089" #arrow right
+      - "\U0000E8DF" #calendar
+
+  - id: material_large
+    file: "gfonts://Material+Icons"
+    size: 100
+    glyphs:
+      - "\U0000E8B5" #clock
+
+time:
+  - platform: sntp
+    id: ntp
+
 display:
   - platform: t547
-    # rotation: 180
-    update_interval: 30s
+    rotation: 90
+    update_interval: 60s
     lambda: |-
-      it.line(0, 0, 960, 540);
+      it.fill(COLOR_OFF);
+      it.printf(270 + 50, 17, id(roboto), COLOR_ON, TextAlign::TOP_CENTER, id(ntp).now().strftime("%H:%M").c_str());
+      it.printf(270 + 25, 120, id(roboto), COLOR_ON, TextAlign::TOP_CENTER, id(ntp).now().strftime("%Y-%m-%d").c_str());
