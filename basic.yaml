@@ -100,9 +100,9 @@ time:
 
 display:
   - platform: t547
-    rotation: 90
+    rotation: 270
     update_interval: 60s
     lambda: |-
       it.fill(COLOR_OFF);
-      it.printf(270 + 50, 17, id(roboto), COLOR_ON, TextAlign::TOP_CENTER, id(ntp).now().strftime("%H:%M").c_str());
-      it.printf(270 + 25, 120, id(roboto), COLOR_ON, TextAlign::TOP_CENTER, id(ntp).now().strftime("%Y-%m-%d").c_str());
+      it.printf(270, 17, id(roboto_large), COLOR_ON, TextAlign::TOP_CENTER, id(ntp).now().strftime("%H:%M").c_str());
+      it.printf(270, 120, id(roboto), COLOR_ON, TextAlign::TOP_CENTER, id(ntp).now().strftime("%Y-%m-%d").c_str());
