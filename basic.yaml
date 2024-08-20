@@ -98,11 +98,37 @@ time:
   - platform: sntp
     id: ntp
 
+image:
+  - file: "images/book.png"
+    id: book_icon
+    resize: 100x100
+  - file: "images/caca.jpg"
+    id: caca_icon
+    resize: 300x300
+
 display:
   - platform: t547
     rotation: 270
     update_interval: 60s
     lambda: |-
+      // Setup
       it.fill(COLOR_OFF);
+      delay(10000);
+
+      // Time & Date
       it.printf(270, 17, id(roboto_large), COLOR_ON, TextAlign::TOP_CENTER, id(ntp).now().strftime("%H:%M").c_str());
       it.printf(270, 120, id(roboto), COLOR_ON, TextAlign::TOP_CENTER, id(ntp).now().strftime("%Y-%m-%d").c_str());
+
+      // Separator
+      it.filled_rectangle(0, 230, it.get_width(), 4, COLOR_ON);
+
+      // Book
+      it.image(220, 270, id(book_icon));
+      it.printf(270, 350, id(roboto), COLOR_ON, TextAlign::TOP_CENTER, "Lolita");
+      it.printf(270, 425, id(roboto_small), COLOR_ON, TextAlign::TOP_CENTER, "Vladimir Nabokov");
+
+      // Separator
+      it.filled_rectangle(0, 520, it.get_width(), 4, COLOR_ON);
+
+      // Caca
+      it.image(120, 600, id(caca_icon));
