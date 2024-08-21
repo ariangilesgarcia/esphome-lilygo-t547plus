@@ -54,6 +54,15 @@ ota:
 wifi: !include wifi-secrets.yaml
 
 
+sensor:
+  - platform: template
+    name: "Dollar Rate Compra Sensor"
+    id: dollar_rate_compra
+  - platform: template
+    name: "Dollar Rate Venta Sensor"
+    id: dollar_rate_venta
+
+
 binary_sensor:
   - platform: gpio
     pin:
@@ -61,8 +70,23 @@ binary_sensor:
       inverted: true
     name: "Button 1"
     on_press:
-      - logger.log: PhysButton Pressed
-
+      then:
+        - http_request.get:
+            url: https://dolarapi.com/v1/dolares/blue
+            capture_response: true
+            on_response:
+              then:
+                - logger.log:
+                    format: "Response status: %d, Duration: %u ms"
+                    args:
+                      - response->status_code
+                      - response->duration_ms
+                - lambda: |-
+                    json::parse_json(body, [](JsonObject root) -> bool {
+                        id(dollar_rate_compra).publish_state(root["compra"]);  // Save the dollar rate to the sensor
+                        id(dollar_rate_venta).publish_state(root["venta"]);
+                        return true;  // Return true to indicate that the parsing was successful
+                    });
 
 external_components:
   source:
@@ -117,6 +141,12 @@ image:
     resize: 300x300
 
 
+http_request:
+  id: dollar_rate_request
+  timeout: 10s
+  verify_ssl: false
+
+
 display:
   - platform: t547
     rotation: 270
@@ -142,3 +172,7 @@ display:
 
       // Caca
       it.image(120, 600, id(caca_icon));
+
+      // Dollar Rate
+      it.printf(120, 570, id(roboto_small), COLOR_ON, TextAlign::BASELINE_LEFT, "Venta: $%.0f", id(dollar_rate_venta).state);
+      it.printf(120, 630, id(roboto_small), COLOR_ON, TextAlign::BASELINE_LEFT, "Compra: $%.0f", id(dollar_rate_compra).state);
