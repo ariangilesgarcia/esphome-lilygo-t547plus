@@ -54,6 +54,13 @@ ota:
 wifi: !include wifi-secrets.yaml
 
 
+globals:
+  - id: initial_update
+    type: boolean
+    restore_value: no
+    initial_value: "false"
+
+
 sensor:
   - platform: template
     name: "Dollar Rate Compra Sensor"
@@ -85,12 +92,19 @@ binary_sensor:
                     json::parse_json(body, [](JsonObject root) -> bool {
                         id(dollar_rate_compra).publish_state(root["compra"]);  // Save the dollar rate to the sensor
                         id(dollar_rate_venta).publish_state(root["venta"]);
+
+                        // Trigger display update only on the first successful API call
+                        if (!id(initial_update)) {  // Access the value directly
+                          id(initial_update) = true;  // Directly set the value to true
+                          id(eink_display).update();
+                        }
+
                         return true;  // Return true to indicate that the parsing was successful
                     });
 
 # Schedule the HTTP request every 10 seconds
 interval:
-  - interval: 60s
+  - interval: 10s
     then:
       - http_request.get:
           url: https://dolarapi.com/v1/dolares/blue
@@ -107,6 +121,13 @@ interval:
                   json::parse_json(body, [](JsonObject root) -> bool {
                       id(dollar_rate_compra).publish_state(root["compra"]);
                       id(dollar_rate_venta).publish_state(root["venta"]);
+
+                      // Trigger display update only on the first successful API call
+                      if (!id(initial_update)) {  // Access the value directly
+                        id(initial_update) = true;  // Directly set the value to true
+                        id(eink_display).update();
+                      }
+
                       return true;
                   });
 
@@ -180,7 +201,7 @@ display:
   - platform: t547
     id: eink_display
     rotation: 270
-    update_interval: 300s
+    update_interval: 600s
     lambda: |-
       // Setup
       it.fill(COLOR_OFF);
@@ -194,13 +215,12 @@ display:
       // Book icon
       int book_icon_w = 100;
       int book_start_x = 520/2 - book_icon_w/2;
-      int book_start_y = 230;
+      int book_start_y = 250;
 
       it.image(book_start_x, book_start_y, id(book_icon));
 
       // Book title
-      it.printf(mid_screen_x, 290, id(roboto_small), COLOR_ON, TextAlign::TOP_CENTER, "El guardian entre el centeno");
-      it.printf(mid_screen_x, 330, id(roboto_small), COLOR_ON, TextAlign::TOP_CENTER, "J. D. Salinger");
+      it.printf(mid_screen_x, 315, id(roboto_small), COLOR_ON, TextAlign::TOP_CENTER, "El guardian entre el centeno");
 
       // Dollar  icon
       int dollar_icon_w = 100;
