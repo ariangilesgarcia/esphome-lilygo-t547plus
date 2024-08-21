@@ -25,6 +25,7 @@ esphome:
       - "-DARDUINO_USB_MODE=1"
       - "-DARDUINO_USB_CDC_ON_BOOT=1"
 
+
 esp32:
   variant: esp32s3
   board: esp32-s3-devkitc-1
@@ -36,17 +37,22 @@ esp32:
     version: 2.0.3
     platform_version: 5.1.1
 
-logger:
-  level: VERBOSE
-  # hardware_uart: USB_CDC  # see note about <https://github.com/esphome/feature-requests/issues/1906> above
 
-# Enable Home Assistant API
-api:
+logger:
+  level: VERBOSE  # hardware_uart: USB_CDC  # see note about <https://github.com/esphome/feature-requests/issues/1906> above
+
+
+api:  # Enable Home Assistant API
   password: !secret api_ota_password
+
+
 ota:
   platform: esphome
   password: !secret api_ota_password
+
+
 wifi: !include wifi-secrets.yaml
+
 
 binary_sensor:
   - platform: gpio
@@ -57,11 +63,13 @@ binary_sensor:
     on_press:
       - logger.log: PhysButton Pressed
 
+
 external_components:
   source:
     type: local
     path: components/
   components: ["t547"]
+
 
 font:
   - id: roboto
@@ -94,9 +102,11 @@ font:
     glyphs:
       - "\U0000E8B5" #clock
 
+
 time:
   - platform: sntp
     id: ntp
+
 
 image:
   - file: "images/book.png"
@@ -106,6 +116,7 @@ image:
     id: caca_icon
     resize: 300x300
 
+
 display:
   - platform: t547
     rotation: 270
@@ -113,7 +124,6 @@ display:
     lambda: |-
       // Setup
       it.fill(COLOR_OFF);
-      delay(10000);
 
       // Time & Date
       it.printf(270, 17, id(roboto_large), COLOR_ON, TextAlign::TOP_CENTER, id(ntp).now().strftime("%H:%M").c_str());
@@ -124,8 +134,8 @@ display:
 
       // Book
       it.image(220, 270, id(book_icon));
-      it.printf(270, 350, id(roboto), COLOR_ON, TextAlign::TOP_CENTER, "Lolita");
-      it.printf(270, 425, id(roboto_small), COLOR_ON, TextAlign::TOP_CENTER, "Vladimir Nabokov");
+      it.printf(270, 350, id(roboto_small), COLOR_ON, TextAlign::TOP_CENTER, "El guardian entre el centeno");
+      it.printf(270, 425, id(roboto), COLOR_ON, TextAlign::TOP_CENTER, "J. D. Salinger");
 
       // Separator
       it.filled_rectangle(0, 520, it.get_width(), 4, COLOR_ON);
