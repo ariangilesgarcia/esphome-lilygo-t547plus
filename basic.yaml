@@ -88,6 +88,29 @@ binary_sensor:
                         return true;  // Return true to indicate that the parsing was successful
                     });
 
+# Schedule the HTTP request every 10 seconds
+interval:
+  - interval: 60s
+    then:
+      - http_request.get:
+          url: https://dolarapi.com/v1/dolares/blue
+          capture_response: true
+          on_response:
+            then:
+              - logger.log:
+                  format: "Response status: %d, Duration: %u ms, Text: %s"
+                  args:
+                    - response->status_code
+                    - response->duration_ms
+                    - body
+              - lambda: |-
+                  json::parse_json(body, [](JsonObject root) -> bool {
+                      id(dollar_rate_compra).publish_state(root["compra"]);
+                      id(dollar_rate_venta).publish_state(root["venta"]);
+                      return true;
+                  });
+
+
 external_components:
   source:
     type: local
@@ -150,8 +173,9 @@ http_request:
 
 display:
   - platform: t547
+    id: eink_display
     rotation: 270
-    update_interval: 60s
+    update_interval: 300s
     lambda: |-
       // Setup
       it.fill(COLOR_OFF);
