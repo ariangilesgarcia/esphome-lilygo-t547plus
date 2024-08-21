@@ -107,6 +107,7 @@ font:
   - id: roboto_small
     file: "gfonts://Roboto"
     size: 34
+    glyphs: "$!%()+=,-_.:°/?0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz"
 
   - id: roboto_vsmall
     file: "gfonts://Roboto"
