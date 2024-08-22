@@ -54,26 +54,39 @@ ota:
 wifi: !include wifi-secrets.yaml
 
 
-globals:
-  - id: initial_update
-    type: boolean
-    restore_value: no
-    initial_value: "false"
-
-
 sensor:
   - platform: template
-    name: "Dollar Rate Compra Sensor"
-    id: dollar_rate_compra
+    name: "Dollar blue compra sensor"
+    id: dollar_blue_compra
   - platform: template
-    name: "Dollar Rate Venta Sensor"
-    id: dollar_rate_venta
+    name: "Dollar blue Venta sensor"
+    id: dollar_blue_venta
 
+  - platform: template
+    name: "Dollar mep compra sensor"
+    id: dollar_mep_compra
+  - platform: template
+    name: "Dollar mep Venta sensor"
+    id: dollar_mep_venta
+
+  - platform: template
+    name: "Dollar ccl compra sensor"
+    id: dollar_ccl_compra
+  - platform: template
+    name: "Dollar ccl Venta sensor"
+    id: dollar_ccl_venta
+
+  - platform: template
+    name: "Dollar cripto compra sensor"
+    id: dollar_cripto_compra
+  - platform: template
+    name: "Dollar cripto Venta sensor"
+    id: dollar_cripto_venta
 
 binary_sensor:
   - platform: gpio
     pin:
-      number: GPIO21 #was GPIO39 on the previous board
+      number: GPIO21
       inverted: true
     name: "Button 1"
     on_press:
@@ -82,9 +95,8 @@ binary_sensor:
         - component.update: eink_display
 
 
-# Schedule the HTTP request every 10 seconds
 interval:
-  - interval: 10s
+  - interval: 60s
     then:
       - http_request.get:
           url: https://dolarapi.com/v1/dolares/blue
@@ -99,17 +111,62 @@ interval:
                     - body
               - lambda: |-
                   json::parse_json(body, [](JsonObject root) -> bool {
-                      id(dollar_rate_compra).publish_state(root["compra"]);
-                      id(dollar_rate_venta).publish_state(root["venta"]);
-
-                      // Trigger display update only on the first successful API call
-                      if (!id(initial_update)) {  // Access the value directly
-                        id(initial_update) = true;  // Directly set the value to true
-                        id(eink_display).update();
-                      }
-
+                      id(dollar_blue_compra).publish_state(root["compra"]);
+                      id(dollar_blue_venta).publish_state(root["venta"]);
                       return true;
                   });
+      - http_request.get:
+          url: https://dolarapi.com/v1/dolares/bolsa
+          capture_response: true
+          on_response:
+            then:
+              - logger.log:
+                  format: "Response status: %d, Duration: %u ms, Text: %s"
+                  args:
+                    - response->status_code
+                    - response->duration_ms
+                    - body
+              - lambda: |-
+                  json::parse_json(body, [](JsonObject root) -> bool {
+                      id(dollar_mep_compra).publish_state(root["compra"]);
+                      id(dollar_mep_venta).publish_state(root["venta"]);
+                      return true;
+                  });
+      - http_request.get:
+          url: https://dolarapi.com/v1/dolares/contadoconliqui
+          capture_response: true
+          on_response:
+            then:
+              - logger.log:
+                  format: "Response status: %d, Duration: %u ms, Text: %s"
+                  args:
+                    - response->status_code
+                    - response->duration_ms
+                    - body
+              - lambda: |-
+                  json::parse_json(body, [](JsonObject root) -> bool {
+                      id(dollar_ccl_compra).publish_state(root["compra"]);
+                      id(dollar_ccl_venta).publish_state(root["venta"]);
+                      return true;
+                  });
+      - http_request.get:
+          url: https://dolarapi.com/v1/dolares/cripto
+          capture_response: true
+          on_response:
+            then:
+              - logger.log:
+                  format: "Response status: %d, Duration: %u ms, Text: %s"
+                  args:
+                    - response->status_code
+                    - response->duration_ms
+                    - body
+              - lambda: |-
+                  json::parse_json(body, [](JsonObject root) -> bool {
+                      id(dollar_cripto_compra).publish_state(root["compra"]);
+                      id(dollar_cripto_venta).publish_state(root["venta"]);
+                      return true;
+                  });
+      - component.update: eink_display
 
 
 external_components:
@@ -120,13 +177,20 @@ external_components:
 
 
 font:
+  - id: days_one
+    file: "gfonts://Days+One"
+    size: 50
+    glyphs: "$!%()+=,-_.:°/?0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz"
+
   - id: roboto
     file: "gfonts://Roboto"
     size: 50
+    glyphs: "$!%()+=,-_.:°/?0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz"
 
   - id: roboto_large
     file: "gfonts://Roboto"
     size: 90
+    glyphs: "$!%()+=,-_.:°/?0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz"
 
   - id: roboto_small
     file: "gfonts://Roboto"
@@ -136,6 +200,7 @@ font:
   - id: roboto_vsmall
     file: "gfonts://Roboto"
     size: 20
+    glyphs: "$!%()+=,-_.:°/?0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz"
 
   - id: material_trams
     file: "gfonts://Material+Icons"
@@ -170,6 +235,13 @@ image:
   - file: "images/dollar.jpg"
     id: dollar_icon
     resize: 100x100
+  - file: "images/dorayaki.jpg"
+    id: img_dorayaki
+    resize: 540x960
+    type: GRAYSCALE
+  - file: "images/screen_dolar.png"
+    id: bg_dollar_screen
+    resize: 540x960
 
 http_request:
   id: dollar_rate_request
@@ -183,6 +255,50 @@ display:
     rotation: 270
     update_interval: 600s
     pages:
+      - id: dollar_rate
+        lambda: |-
+          // Setup
+          it.fill(COLOR_OFF);
+          it.image(0,0, id(bg_dollar_screen));
+          int mid_screen_x = it.get_width()/2;
+
+          // Dollar blue
+          it.printf(170, 360, id(days_one), COLOR_ON, TextAlign::TOP_CENTER,
+                    !isnan(id(dollar_blue_compra).state) ? "$%.0f" : "...",
+                    id(dollar_blue_compra).state);
+          it.printf(380, 360, id(days_one), COLOR_ON, TextAlign::TOP_CENTER,
+                    !isnan(id(dollar_blue_venta).state) ? "$%.0f" : "...",
+                    id(dollar_blue_venta).state);
+
+          // Dollar mep
+          it.printf(170, 510, id(days_one), COLOR_ON, TextAlign::TOP_CENTER,
+                    !isnan(id(dollar_mep_compra).state) ? "$%.0f" : "...",
+                    id(dollar_mep_compra).state);
+          it.printf(380, 510, id(days_one), COLOR_ON, TextAlign::TOP_CENTER,
+                    !isnan(id(dollar_mep_venta).state) ? "$%.0f" : "...",
+                    id(dollar_mep_venta).state);
+
+          // Dollar ccl
+          it.printf(170, 670, id(days_one), COLOR_ON, TextAlign::TOP_CENTER,
+                    !isnan(id(dollar_ccl_compra).state) ? "$%.0f" : "...",
+                    id(dollar_ccl_compra).state);
+          it.printf(380, 670, id(days_one), COLOR_ON, TextAlign::TOP_CENTER,
+                    !isnan(id(dollar_ccl_venta).state) ? "$%.0f" : "...",
+                    id(dollar_ccl_venta).state);
+
+          // Dollar cripto
+          it.printf(170, 830, id(days_one), COLOR_ON, TextAlign::TOP_CENTER,
+                    !isnan(id(dollar_cripto_compra).state) ? "$%.0f" : "...",
+                    id(dollar_cripto_compra).state);
+          it.printf(380, 830, id(days_one), COLOR_ON, TextAlign::TOP_CENTER,
+                    !isnan(id(dollar_cripto_venta).state) ? "$%.0f" : "...",
+                    id(dollar_cripto_venta).state);
+      - id: dorayaki
+        lambda: |-
+          // Setup
+          it.fill(COLOR_OFF);
+          it.image(0,0, id(img_dorayaki));
+
       - id: home
         lambda: |-
           // Setup
@@ -212,8 +328,8 @@ display:
           it.image(dollar_start_x, dollar_start_y, id(dollar_icon));
 
           // Dollar Rate
-          it.printf(200, 500, id(roboto_small), COLOR_ON, TextAlign::BASELINE_LEFT, "Venta: $%.0f", id(dollar_rate_venta).state);
-          it.printf(200, 540, id(roboto_small), COLOR_ON, TextAlign::BASELINE_LEFT, "Compra: $%.0f", id(dollar_rate_compra).state);
+          it.printf(200, 500, id(roboto_small), COLOR_ON, TextAlign::BASELINE_LEFT, "Venta: $%.0f", id(dollar_blue_venta).state);
+          it.printf(200, 540, id(roboto_small), COLOR_ON, TextAlign::BASELINE_LEFT, "Compra: $%.0f", id(dollar_blue_compra).state);
 
           // Caca
           int caca_icon_w = 250;
@@ -221,20 +337,5 @@ display:
           int caca_start_y = 650;
 
           it.image(caca_start_x, caca_start_y, id(caca_icon));
-      - id: dollar_rate
-        lambda: |-
-          // Setup
-          it.fill(COLOR_OFF);
-          it.image(0,0, id(bg));
-          int mid_screen_x = it.get_width()/2;
 
-          // Dollar  icon
-          int dollar_icon_w = 100;
-          int dollar_start_x = 50;
-          int dollar_start_y = 460;
-
-          it.image(dollar_start_x, dollar_start_y, id(dollar_icon));
-
-          // Dollar Rate
-          it.printf(200, 500, id(roboto_small), COLOR_ON, TextAlign::BASELINE_LEFT, "Venta: $%.0f", id(dollar_rate_venta).state);
-          it.printf(200, 540, id(roboto_small), COLOR_ON, TextAlign::BASELINE_LEFT, "Compra: $%.0f", id(dollar_rate_compra).state);
+          // TODO: Agregar proximo feriado
