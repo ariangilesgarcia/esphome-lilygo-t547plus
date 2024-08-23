@@ -83,6 +83,24 @@ sensor:
     name: "Dollar cripto Venta sensor"
     id: dollar_cripto_venta
 
+  - platform: template
+    name: "Days Until Next Holiday"
+    id: days_until_holiday
+
+
+text_sensor:
+  - platform: template
+    name: "Next Holiday Date"
+    id: next_holiday_date
+  - platform: template
+    name: "Next Holiday Name"
+    id: next_holiday_name
+  - platform: template
+    name: "Next Holiday Type"
+    id: next_holiday_type
+
+
+
 binary_sensor:
   - platform: gpio
     pin:
@@ -167,6 +185,28 @@ interval:
                       return true;
                   });
       - component.update: eink_display
+  - interval: 25s
+    then:
+      - http_request.get:
+          url: https://us-central1-arian-2g3d.cloudfunctions.net/next-holiday-api
+          on_response:
+            then:
+              - logger.log:
+                  format: "Holiday API: Response status: %d, Duration: %u ms, Text: %s, %s"
+                  args:
+                    - response->status_code
+                    - response->duration_ms
+                    - body
+                    - body.c_str()
+              - lambda: |-
+                  json::parse_json(body, [](JsonObject root) -> bool {
+                      id(days_until_holiday).publish_state(root["dias_hasta"]);
+                      id(next_holiday_date).publish_state(root["fecha"]);
+                      id(next_holiday_name).publish_state(root["nombre"]);
+                      id(next_holiday_type).publish_state(root["tipo"]);
+                      return true;
+                  });
+              - component.update: eink_display
 
 
 external_components:
@@ -243,6 +283,7 @@ image:
     id: bg_dollar_screen
     resize: 540x960
 
+
 http_request:
   id: dollar_rate_request
   timeout: 10s
@@ -255,6 +296,15 @@ display:
     rotation: 270
     update_interval: 600s
     pages:
+      - id: next_holiday_page
+        lambda: |-
+          // Next Holiday
+          int mid_screen_x = it.get_width()/2;
+          it.printf(mid_screen_x, 720, id(roboto_small), COLOR_ON, TextAlign::TOP_CENTER, "Next Holiday: %s", id(next_holiday_name).state.c_str());
+          it.printf(mid_screen_x, 760, id(roboto_small), COLOR_ON, TextAlign::TOP_CENTER, "Date: %s", id(next_holiday_date).state.c_str());
+          it.printf(mid_screen_x, 800, id(roboto_small), COLOR_ON, TextAlign::TOP_CENTER, "Type: %s", id(next_holiday_type).state.c_str());
+          it.printf(mid_screen_x, 840, id(roboto_small), COLOR_ON, TextAlign::TOP_CENTER, "In %d days", (int)id(days_until_holiday).state);
+
       - id: dollar_rate
         lambda: |-
           // Setup
